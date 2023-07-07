@@ -1,40 +1,48 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"github.com/AhmedSaIah/fiber/controllers"
+	"github.com/AhmedSaIah/fiber/database"
+	"github.com/AhmedSaIah/fiber/repository"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
-
-	"github.com/AhmedSaIah/fiber/controllers/user"
-	"github.com/AhmedSaIah/fiber/database"
 )
 
 func main() {
+	app := fiber.New()
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
 	url := os.Getenv("MONGO_URL")
-	db, err := database.ConnDB(url)
+	clientOptions := options.Client().ApplyURI(url)
+	client, err := mongo.Connect(context.Background(), clientOptions)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer db.Disconnect(nil)
-
-	app := fiber.New(fiber.Config{Immutable: true})
-	userRepo := database.NewUserRepository(db)
-	signUpController := user.NewUserController(userRepo)
-
-	app.Get("/")
-	app.Post("/signup", signUpController.SignUp)
-	app.Post("/login", signUpController.Login)
-	err = app.Listen(":3000")
+	err = client.Ping(context.Background(), nil)
 	if err != nil {
-		fmt.Println("listening on port 3000 failed %w", err)
+		log.Fatal(err)
 	}
+
+	userRepo := repository.NewUserRepository(database.NewConnection())
+	userController := controllers.NewUserController(userRepo)
+
+	app.Use(logger.New())
+	app.Get("/", func(ctx *fiber.Ctx) error {
+		return ctx.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Hello fiber"})
+	})
+	app.Post("/signup", userController.SignUp)
+	//app.Post("/login", userController.Login)
+	log.Fatal(app.Listen(":3000"))
 }
