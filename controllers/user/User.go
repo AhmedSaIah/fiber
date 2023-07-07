@@ -53,10 +53,10 @@ func (u *UController) SignUp(c *fiber.Ctx) error {
 	user.Password = string(hashedPassword)
 	user.ID = primitive.NewObjectID()
 	err = u.userRepository.Save(&models.User{
-		ID:       primitive.NewObjectID(),
+		ID:       user.ID,
 		Name:     user.Name,
 		Email:    user.Email,
-		Password: string(hashedPassword),
+		Password: user.Password,
 	})
 	if err != nil {
 		return err
