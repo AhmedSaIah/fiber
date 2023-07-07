@@ -9,6 +9,7 @@ type User struct {
 	Password string             `json:"password" bson:"password"`
 }
 
+// UserRepository Why are we adding this
 type UserRepository interface {
 	Save(user *User) error
 	FindByEmail(email string) (*User, error)
