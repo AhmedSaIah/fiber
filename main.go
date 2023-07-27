@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -105,29 +105,26 @@ func main() {
 	//	panic(err)
 	//}
 
-	//TODO: Install cors gor gin-gonic and almost done
-
-	corsConfig := cors.Config{
-		AllowOrigins:     "http://localhost:8000",
-		AllowCredentials: true,
-	}
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"http://localhost:8000", "http://localhost:3000"}
+	corsConfig.AllowCredentials = true
 	server.Use(cors.New(corsConfig))
 
 	//app.Get("/", func(ctx *gin.Context) {
 	//	ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": "/"})
 	//})
 
-	router := app.Group("/auth")
-	router.Get("/check", func(ctx *fiber.Ctx) error {
-		return ctx.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "message": "works"})
+	router := server.Group("/auth")
+	router.GET("/", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{"status": "success", "routes": "/login /signup /refresh /logout"})
+	})
+	router.GET("/check", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": "works"})
 	})
 
 	AuthRouteController.AuthRoute(router, userService)
 	UserRouteController.UserRoute(router, userService)
 
-	err = app.Listen(":" + cnf.Port)
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Fatal(server.Run(":" + cnf.Port))
 
 }
